@@ -1,0 +1,124 @@
+NAME: Yichen Zhou
+EMAIL: yichenzhou5565@outlook.com
+UID: 205140928
+
+Included files:
+server.c: source file for server
+client.c: source file for client
+Makefile: for compilation purposes
+README: what you are reading now
+packet.h: header file for struct PACKET
+
+High level design:
+server.c:
+build socket
+inf loop:
+    if receive SYN from client
+       open file *.file
+       send SYN ACK
+    if receive pkts with data
+       if in-order
+       	  put it in *.file
+	  send ACK
+       if out of order
+       	  discard
+    if receive FIN
+       send FIN-ACK
+       close and save *.file
+
+client.c:
+build socket()
+send initial SYN request
+inf loop:
+    if receive SYN-ACK from server
+       start sending data pkts, since window size is 10
+       send 10 pkts in parallel
+    if receive FIN-ACK from server
+       sleep 2 s, close connection
+       exit process
+    if receive regular ACK packets
+       if ACK pkt is ok, and there are more pkts to send, send it
+    if all pkts are sent and received
+       send FIN to server
+
+Problems & Solving:
+A probelm that I ran into was about managing null bytes. I tried several
+solutions, which I will list them here for my own future references
+1. Regardless of payload size, always send 524 bytes to server. 
+   This does NOT work. Indeed this will work for all packets except
+   the last one, which will result in extra paddings at the end of file.
+2. Use C library function strlen() to control the number of bytes sent to
+   the server. This does NOT work. Indeed, this works whenever you are not
+   dealing with binary files. But when it comes to random generated binary
+   files, it fails since null bytes signaling end of "string" can appear in
+   the middle of binary file. This will cease the program. An useful tool
+   I found to debug on this is the command "hexdump", which describes
+   messy binary into hex
+
+References:
+Turn string into integers:
+unsigned long int strtoul(const char* str, char** endptr, int base);
+str: the target string
+endptr: set to next char in str
+base: which base you want the result in
+Referred from:
+https://www.tutorialspoint.com/c_standard_library/c_function_strtoul.htm
+
+I forget about some details w/ sprintf, so I checked:
+https://www.geeksforgeeks.org/sprintf-in-c/
+
+struct hostent{
+       char** h_name;
+       char** h_aliases;
+       int h_addrtype;
+       int h_length;
+       char** h_addr_list;
+};
+Referred from:
+https://stackoverflow.com/questions/40018527/memcpy-and-hostent-struct-on-c
+
+For random process and seed:
+void srand(unsigned int seed);
+seed: int that is used as seed for pseodo random process
+Referred from:
+https://www.tutorialspoint.com/c_standard_library/c_function_srand.htm
+
+#include <sys/types.h>
+#include <sys/socket.h>
+ssize_t sendto(int sockfd, const void* buf, size_t len, int flags,
+	const struct sockaddr* dest_addr, socklen_t addr_len);
+If sendto() is used on a connection-mode (SOCK_STREAM, SOCK_SEQPACKET) 
+socket, the arguments dest_addr and addrlen are ignored (and the error 
+EISCONN may be returned when they are not NULL and 0), and the error 
+ENOTCONN is returned when the socket was not actually connected. Otherwise, 
+the address of the target is given by dest_addr with addrlen specifying its size.
+RC=-1 if failure
+RC=# of char sent
+Referred from:
+https://linux.die.net/man/2/sendto
+
+#include <sys/types.h>
+#include <sys/socket.h>
+ssize_t recvfrom(sockfd, void* buf, size_t len, int flags, 
+	struct sockaddr* src_addr, socklen_t *addrlen);
+Used to receive message from a socket, whether or not connected oriented
+recv() call is normally used only on a connected socket (see connect(2)) 
+and is identical to recvfrom() with a NULL src_addr argument.
+Referred from:
+https://linux.die.net/man/2/recvfrom
+
+A potentially helpful example:
+https://github.com/liao1995/Implement-TCP-using-UDP/blob/master/mytcp.c
+
+To get current time:
+#include <time.h>
+time_t now = time(0);
+//This gives seconds since Jan 1, 1970
+https://stackoverflow.com/questions/5141960/get-the-current-time-in-c
+
+To check for end of file:
+feof(FILE* fp);
+https://www.tutorialspoint.com/c_standard_library/c_function_feof.htm
+
+To improve precision of time:
+https://linux.die.net/man/3/clock_gettime
