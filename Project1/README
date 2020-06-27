@@ -1,0 +1,92 @@
+NAME: Yichen Zhou
+EMAIL: yichenzhou5565@outlook.com
+UID: 205140928
+
+Included files:
+webserver.c: source file for server
+Makefile: for compilation and cleaning purposes
+README: what you are reading now
+
+High level design of my server:
+main():
+	socket, relative initializations, bind, listen
+	fork()
+		child process: call connection(), close sockfd
+		parent process: close new_fd
+connection():
+	read and print the request message into buffer for later use
+	verify that his is an HTTP request and using GET
+	       otherwise, exit
+	transfer the URL filename into real file name
+		 i.e., white space
+	open the file with real file name we get from previous step
+	get the file content, content type, content length
+	get the file type
+	get status, server info, connection info, ending bytes
+	send the "got" stuff into sockfd and print the response message
+
+Something to note:
+In my implementation, for debugging purposes, I added a feature which is not
+required per the spec: 404 not found.
+Also, note that the extensions (e.g., jpg, html, ...) is case sensitive
+in my implementation.
+
+Problem & solving:
+1. Whitespace of file name. I did not realize this problem at first,
+   which leads to occasional failure of the program. This is indeed tricky.
+   I solved this problem by searching quite a lot online. Relative 
+   references is given in the "Reference" section.
+   However, when I reflect on this problem I decide this probelm might be
+   avoided (and time saved..) if I realized that whitespace has always 
+   been a special character. e.g., in Shell commands, if a dir name
+   has whitespace when I try to cd or something I have to add the 
+   \ to escape it through..
+2. Initially I did not send the terminating bytes ("\r\n\0"). This resulted
+   in the webpage never displaying anything. I solved this problem by
+   printing out everything I can (yeah and find out that they all seems
+   fine) so that I can target the problem to be something wrong with
+   the sending responding part of code
+3. I also messed up for a short while regarding strstr() and strcmp() but
+   this really got fixed really quick. Just to write here to remind myself
+   to be more careful..
+Reference:
+For general socket programming, I referred to
+the slides of Section 1C.
+
+For general HTTP programming, I referred to:
+https://dzone.com/articles/web-server-c
+This is a very useful example
+
+For reading the requests, I found that there are 
+two ways: use recv() or read(). For implementation
+simplicity, I choose to use read(). However, notice
+that the max limit for most web servers is 8192 bytes,
+I'll take this as the size of buffer.
+Refernce: https://stackoverflow.com/questions/2659952/
+	maximum-length-of-http-get-request
+
+For sample HTTP get messages, I referred to:
+https://www.tutorialspoint.com/http/http_requests.htm
+
+For white space in request:
+https://stackoverflow.com/questions/5442658/spaces-in-urls
+
+fseek and ftell:
+http://man7.org/linux/man-pages/man3/fseek.3.html
+int fseek(FILE* stream, long offset, int whence);
+The fseek() function sets the file position indicator for the stream
+       pointed to by stream.  The new position, measured in bytes, is
+       obtained by adding offset bytes to the position specified by whence.
+If whence is set to SEEK_SET, SEEK_CUR, or SEEK_END, the offset is
+       relative to the start of the file, the current position indicator, or
+       end-of-file, respectively.
+long ftell(FILE* stream);
+The ftell() function obtains the current value of the file position
+       indicator for the stream pointed to by stream.
+
+size_t fread(void* ptr, size_t size, size_t nmeb, FILE* stream);
+Reads nmemb elements of data, each size bytes long, from the stream pointed to by stream, store them in ptr
+https://linux.die.net/man/3/fread
+https://stackoverflow.com/questions/174531/how-to-read-
+	the-content-of-a-file-to-a-string-in-c
+
